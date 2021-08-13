@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# Check for dependencies
+deps=( bison autoconf automake pkg-config )
+unset bail
+for i in "${deps[@]}"; do command -v "$i" >/dev/null 2>&1 || { bail="$?"; echo "$i" is not available; }; done
+if [ "$bail" ]; then exit "$bail"; fi
+
 export CC=cc
 export REALCC=${CC}
 export CPPFLAGS="-P"
@@ -57,7 +63,7 @@ TMUX_STATIC_HOME="/tmp/tmux-static"
 LOG_DIR="${TMUX_STATIC_HOME}/log"
 
 TMUX_ARCHIVE="tmux-${TMUX_VERSION}.tar.gz"
-TMUX_URL="https://github.com/tmux/tmux/releases/download/${TMUX_VERSION}"
+TMUX_URL="https://github.com/tmux/tmux.git"
 
 MUSL_ARCHIVE="musl-${MUSL_VERSION}.tar.gz"
 MUSL_URL="https://www.musl-libc.org/releases"
@@ -361,17 +367,19 @@ LOG_FILE="tmux-${TMUX_VERSION}.log"
 cd ${TMUX_STATIC_HOME}/src || exit 1
 if [ ! -f ${TMUX_ARCHIVE} ]; then
     printf "Downloading..."
-    wget --no-verbose ${TMUX_URL}/${TMUX_ARCHIVE} > ${LOG_DIR}/${LOG_FILE} 2>&1
+    [ -d tmux ] && rm -rf tmux
+    git clone ${TMUX_URL} > ${LOG_DIR}/${LOG_FILE} 2>&1
     checkResult $?
 fi
 
-printf "Extracting...."
-tar xzf ${TMUX_ARCHIVE}
-checkResult $?
+#printf "Extracting...."
+#tar xzf ${TMUX_ARCHIVE}
+#checkResult $?
 
-cd tmux-${TMUX_VERSION} || exit 1
+cd tmux || exit 1
 
 printf "Configuring..."
+sh autogen.sh
 ./configure --prefix=${TMUX_STATIC_HOME} \
     --enable-static \
     --includedir="${TMUX_STATIC_HOME}/include" \
